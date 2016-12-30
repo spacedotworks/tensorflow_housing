@@ -2,14 +2,42 @@ import tensorflow as tf
 import numpy as np
 import pandas
 
+def input_fn(df):
+  # Creates a dictionary mapping from each continuous feature column name (k) to
+  # the values of that column stored in a constant Tensor.
+  continuous_cols = {k: tf.constant(df[k].values)
+                     for k in CON_COLS}
+  # Creates a dictionary mapping from each categorical feature column name (k)
+  # to the values of that column stored in a tf.SparseTensor.
+  categorical_cols = {k: tf.SparseTensor(
+      indices=[[i, 0] for i in range(df[k].size)],
+      values=df[k].values,
+      shape=[df[k].size, 1])
+                      for k in CAT_COLS}
+  # Merges the two dictionaries into one.
+  feature_cols = dict(continuous_cols.items() + categorical_cols.items())
+  # Converts the label column into a constant Tensor.
+  label = tf.constant(df[LABEL_COLUMN].values)
+  # Returns the feature columns and the label.
+  return feature_cols, label
+
 #data = np.genfromtxt("train.csv", dtype="string", delimiter=",", names=True)
 data = pandas.read_csv("train.csv", header=0, delimiter=",")
+data.fillna(0, inplace=True)
+
+CAT_COLS = []
+CON_COLS = []
+LABEL_COL = "SalePrice"
 
 for i in data:
   dtype = np.dtype(data[i])
   if dtype == "object":
-    x, data[i] = np.unique(data[i], return_inverse=True)
-    print data[:1]
+    CAT_COLS.append(i)
+  elif i != LABEL_COL:
+    CON_COLS.append(i)
+x,y = input_fn(data)
+print x
+
 #fdata = np.unique(data)
 #print data[1]
 
